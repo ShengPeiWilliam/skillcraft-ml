@@ -12,10 +12,12 @@ Multinomial classification of StarCraft II player skill levels using the SkillCr
 - Random Forest diagnostics: OOB error convergence, variable importance, MDS proximity plot
 
 ## Tools
-R • nnet • rpart • randomForest • caret • UBL • ggplot2
+R • nnet • rpart • randomForest • caret • smotefamily • themis • ggplot2
 
 ## Repository
-`skillcraft_analysis.ipynb` — Main analysis notebook
+`skillcraft_analysis.ipynb` — Main analysis notebook  
+`main.pdf` — Final report  
+`figures/` — All plots and visualizations
 
 ## References
 

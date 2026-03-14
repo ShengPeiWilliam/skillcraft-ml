@@ -50,3 +50,9 @@ rsconnect/
 
 
 skillcraft_analysis.html
+
+*.aux
+*.log
+*.synctex.gz
+*.out
+*.toc
