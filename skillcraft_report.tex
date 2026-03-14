@@ -1,0 +1,623 @@
+\documentclass[12pt, a4paper]{article}
+
+% ── Packages ──────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx}                    % Times New Roman
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}                     % Professional tables
+\usepackage{multirow}                     % Merged table cells
+\usepackage{caption}
+\usepackage{subcaption}                   % Side-by-side figures
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{setspace}
+\usepackage{natbib}
+\usepackage{xcolor}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!60!black,
+    citecolor=blue!60!black,
+    urlcolor=blue!60!black
+}
+
+\onehalfspacing
+
+% ── Title ─────────────────────────────────────────────────
+\title{
+    \vspace{-1cm}
+    \Large\textbf{SkillCraft1: Multinomial Skill Classification\\Using Machine Learning}
+}
+\author{
+    William Chen\\
+    \textit{University of California, Irvine}\\
+    Instructor: Prof.\ Sam Behseta\\
+    \textit{DATA 200BP: Intermediate Probability and Statistical Theory II}
+}
+\date{}
+
+% ══════════════════════════════════════════════════════════
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+% ── Abstract ──────────────────────────────────────────────
+\begin{abstract}
+This project extends the work of Thompson et al.\ (2013), who used pairwise binary
+classification with Conditional Inference Forest to study variable importance across
+StarCraft~II skill levels. While their approach provided insights into how predictors
+of expertise change across leagues, it did not address the full complexity of multi-class
+skill prediction or the class imbalance inherent in the SkillCraft1 dataset. This study
+reformulates the problem as a 6-class multinomial classification task, predicting player
+league rankings from Bronze~(1) to Masters~(6).
+
+Three machine learning models are evaluated---Multinomial Logistic Regression,
+Decision Tree, and Random Forest---each trained under three class imbalance strategies:
+Baseline, Class Weights, and SMOTE combined with Tomek Links. Model performance is
+assessed using overall accuracy and minority class recall on a held-out test set.
+
+Results show that Random Forest with Class Weights achieves the best overall balance,
+with an accuracy of 0.4070 and a meaningful improvement in minority class recall
+compared to the baseline. In a direct pairwise comparison replicating Thompson et al.'s
+setup, our best model outperforms their Conditional Inference Forest results in 3 out
+of 4 league pairs. These findings suggest that class weighting is an effective and
+practical strategy for handling imbalance in multi-class skill classification tasks.
+\end{abstract}
+
+\newpage
+\tableofcontents
+\newpage
+
+% ══════════════════════════════════════════════════════════
+\section{Introduction}
+% ══════════════════════════════════════════════════════════
+
+\subsection{Nature of the Project}
+
+Cognitive science has long studied expertise by comparing experts with novices. Thompson
+et al.\ (2013) challenged the assumptions underlying such comparisons by analyzing
+StarCraft~II telemetry data from 3,395 players across competitive leagues. They discovered
+that variable importance is not static --- APM dominates at lower skill levels, but at
+higher levels, attentional efficiency metrics become more predictive.
+
+Their method used pairwise binary classifiers built with Conditional Inference Forests,
+each comparing players two leagues apart. This design was deliberate: neighboring leagues
+are not cleanly separable because league placement does not perfectly reflect objective
+skill. They found that classifiers performed poorly on adjacent leagues and had
+significantly more success when the distance between classes was at least two.
+
+StarCraft~II is well-suited for this type of study. Unlike chess, an average RTS game
+contains \textasciitilde1,635 moves, providing dense behavioral data in a naturalistic
+setting. The SkillCraft1 dataset contains 20 behavioral and demographic variables, making
+it the largest expertise study of its kind.
+
+\subsection{Aims}
+
+This project extends Thompson et al.'s pairwise approach in two directions. First, we
+replicate their pairwise binary classifiers using our best-performing configuration to
+benchmark our methodology against their Conditional Inference Forest results. Second,
+we develop a direct 6-class multinomial prediction model that simultaneously classifies
+players across all skill levels --- a more challenging problem that requires handling
+severe class imbalance and non-linear decision boundaries.
+
+To address class imbalance, three strategies are compared: baseline classification,
+class weight adjustment, and SMOTE combined with Tomek Links. This allows us to
+investigate whether imbalance-aware training improves prediction of minority classes.
+
+\subsection{Goals}
+
+The primary goal of this project is to develop an effective 6-class multinomial
+classifier for Leagues 1 through 6 that balances overall accuracy with minority class
+recall. To achieve this, we compare three machine learning models --- Multinomial Logistic
+Regression, Decision Tree, and Random Forest --- each trained under three imbalance
+strategies: Baseline, Class Weights, and SMOTE combined with Tomek Links. Additionally,
+we replicate Thompson et al.'s pairwise binary classification setup to benchmark our
+best-performing model against their Conditional Inference Forest results.
+
+A secondary goal is to examine whether demographic features such as Age and HoursPerWeek
+contribute meaningfully to skill prediction beyond in-game behavioral metrics.
+
+
+% ══════════════════════════════════════════════════════════
+\section{Literature Review}
+% ══════════════════════════════════════════════════════════
+
+\subsection{Skill Classification in Competitive Gaming}
+
+Skill assessment in competitive games bridges expertise research with machine learning.
+Unlike laboratory settings, games provide naturalistic data where players compete under
+identical conditions. Real-time strategy games like StarCraft~II are particularly rich:
+they demand simultaneous management of multiple objectives and high-frequency
+decision-making, making them ideal for studying expertise across a continuous skill
+spectrum.
+
+\subsection{Thompson et al.\ (2013): SkillCraft1 Baseline}
+
+Thompson et al.\ (2013) introduced the SkillCraft1 dataset, comprising 3,395 players
+across 7 leagues with 20 behavioral and demographic variables. Their primary objective
+was to examine how variable importance changes across skill levels, rather than to
+maximize classification accuracy. Using pairwise binary classifiers built with
+Conditional Inference Forests (ntree = 1000, mtry = 5), they compared leagues two
+levels apart to avoid the separability issues inherent in adjacent league comparisons.
+
+Their analysis revealed that adjacent leagues are difficult to separate because league
+placement does not perfectly reflect objective skill. They also found that variable
+importance shifts across the skill spectrum --- APM predicts skill at lower levels, while
+attentional efficiency metrics such as Action Latency and Gap Between PACs become
+dominant at higher levels. Grandmaster players were excluded due to their small sample
+size (35 players), and 55 professional players were added from publicly available
+tournament replays to form the highest skill group.
+
+This project extends their work by replicating the pairwise comparison using RF +
+Class Weights --- a standard Random Forest with class weighting, as opposed to their
+Conditional Inference Forest --- and by attempting direct 6-class multinomial prediction,
+a harder problem that Thompson et al.\ did not pursue due to the separability limitations
+they observed.
+
+\subsection{Class Imbalance Handling Methods}
+
+Class imbalance occurs when certain classes are significantly smaller than others,
+causing models to favor majority classes and underperform on minority ones. Three
+common strategies for addressing this issue are evaluated in this study.
+
+SMOTE generates synthetic minority samples by interpolating between existing
+observations and their nearest neighbors. This increases representation without
+duplication, but may produce samples that do not reflect realistic data patterns.
+
+Tomek Links remove majority class samples that are nearest neighbors of minority
+class samples, cleaning the decision boundary. This is often combined with SMOTE
+to provide both augmentation and boundary clarity.
+
+Class Weighting adjusts the loss function to penalize misclassification of minority
+samples more heavily, typically using inverse frequency weighting. Unlike resampling
+methods, it preserves the original data distribution entirely.
+
+\subsection{Machine Learning Models for Classification}
+
+Multinomial Logistic Regression produces linear decision boundaries and interpretable
+coefficients, but may underperform when feature-class relationships are nonlinear.
+
+Decision Trees partition the feature space using binary splits, naturally handling
+nonlinearity. However, they are prone to overfitting and require pruning to generalize.
+
+Random Forests aggregate many decision trees through bagging and random feature
+selection, reducing overfitting and improving robustness at the cost of interpretability.
+
+These three models are compared across three imbalance strategies to identify the
+most effective combination for 6-class skill classification.
+
+
+% ══════════════════════════════════════════════════════════
+\section{Data Introduction}
+% ══════════════════════════════════════════════════════════
+
+\subsection{SkillCraft1 Dataset Overview}
+
+The SkillCraft1 dataset contains 3,395 StarCraft~II player observations across 8
+leagues. After removing League~8 (systematic missing data in all demographic features)
+and League~7 (Grandmaster, excluded per Thompson et al.\ due to small sample size),
+the analysis uses 3,340 observations across 6 leagues: Bronze, Silver, Gold, Platinum,
+Diamond, and Masters.
+
+The dataset is severely class-imbalanced, with Bronze players comprising only about
+5\% of observations while Platinum and Diamond together account for nearly half.
+
+\subsection{Data Features \& Characteristics}
+
+The dataset contains 20 variables: 3 demographic (Age, HoursPerWeek, TotalHours) and
+17 behavioral, capturing in-game actions such as APM, hotkey usage, map control,
+decision-making efficiency, and unit production, all normalized per minute of gameplay.
+
+
+% ══════════════════════════════════════════════════════════
+\section{Exploratory Data Analysis}
+% ══════════════════════════════════════════════════════════
+
+\subsection{Summary Statistics}
+
+From the summary, \texttt{Age}, \texttt{HoursPerWeek}, and \texttt{TotalHours} contain
+missing values (NA). Additionally, \texttt{TotalHours} shows an abnormally large maximum
+value of 1,000,000, suggesting the presence of an outlier that will need to be addressed
+in preprocessing.
+
+\subsection{Class Distribution}
+
+The distribution of players across leagues is highly imbalanced (Figure~\ref{fig:class-dist}).
+Platinum (League~4) and Diamond (League~5) account for the majority of observations,
+while Grandmaster (League~7) and Professional (League~8) have very few samples.
+This imbalance will be addressed in Section~5 and Section~6.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/class_distribution.png}
+    \caption{Player distribution by league.}
+    \label{fig:class-dist}
+\end{figure}
+
+\subsection{Feature Distribution by League}
+
+Four features are examined to assess their relationship with league rank
+(Figure~\ref{fig:feature-boxplots}). Age shows a stable median around 20--22 across all
+leagues, suggesting age alone is not a strong indicator of skill level. MinimapAttacks
+shows narrow boxes close to zero across most leagues, though higher leagues show slightly
+wider distributions. TotalHours contains an extreme outlier (1,000,000 hours) that
+dominates the y-axis, confirming the need for outlier capping in preprocessing.
+WorkersMade shows the highest median at League~6 rather than League~7 or~8, suggesting
+worker production does not linearly increase with rank.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/feature_boxplots.png}
+    \caption{Feature distributions across leagues for Age, MinimapAttacks, TotalHours,
+    and WorkersMade.}
+    \label{fig:feature-boxplots}
+\end{figure}
+
+\subsection{Data Quality Issues}
+
+TotalHours contains an extreme outlier of 1,000,000 hours. After capping at the 99th
+percentile (2,520 hours), the distribution shows a right-skewed pattern with most
+players under 1,000 hours. Actual outlier handling is applied in Section~5.
+
+All 55 League~8 observations are missing Age, HoursPerWeek, and TotalHours (100\%),
+indicating systematic missingness --- likely because professional players' data was
+collected from tournament records rather than standard ladder profiles. In contrast,
+League~5 has only 2--3 missing entries ($<0.3$\%), consistent with random gaps.
+This supports excluding League~8 entirely rather than attempting imputation.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/totalhours_dist.png}
+    \caption{Distribution of TotalHours after capping at the 99th percentile (2,520 hours).
+    The distribution is right-skewed, with most players logging under 1,000 hours.}
+    \label{fig:totalhours-dist}
+\end{figure}
+
+\subsection{Feature Correlations}
+
+The correlation heatmap reveals several notable relationships with LeagueIndex
+(Figure~\ref{fig:corr-heatmap}). APM (0.66) and AssignToHotkeys (0.53) show strong
+positive correlations, indicating higher-ranked players have faster actions and more
+hotkey usage. ActionLatency ($-0.67$) shows the strongest negative correlation,
+confirming that lower reaction time is associated with higher league rank. APM and
+ActionLatency are strongly negatively correlated ($-0.72$), suggesting potential
+multicollinearity to be addressed in modeling.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{figures/correlation_heatmap.png}
+    \caption{Correlation heatmap of selected features with LeagueIndex. ActionLatency
+    ($-0.67$) and APM (0.66) show the strongest associations with league rank.}
+    \label{fig:corr-heatmap}
+\end{figure}
+
+
+% ══════════════════════════════════════════════════════════
+\section{Data Preprocessing}
+% ══════════════════════════════════════════════════════════
+
+League~8 (Professional) is excluded due to 100\% systematic missing values in all
+demographic features. League~7 (Grandmaster) is excluded per Thompson et al.\ (2013)
+due to its small sample size and analytic difficulties. TotalHours is capped at the
+99th percentile to remove extreme outliers while preserving the overall distribution.
+The remaining missing values (5 observations in League~5) are imputed using
+\texttt{rfImpute}, which uses Random Forest proximity to estimate missing values
+iteratively over 6 iterations. The OOB error stabilizes around 58--59\%, indicating
+convergence. The final dataset contains 3,340 observations across 6 leagues
+(Bronze through Masters), split into 80\% training ($n=2{,}644$) and 20\% test
+($n=661$) sets with a fixed random seed.
+
+
+% ══════════════════════════════════════════════════════════
+\section{Methods}
+% ══════════════════════════════════════════════════════════
+
+\subsection{Feature Selection and Tuning}
+
+\paragraph{Multicollinearity Check (VIF).}
+VIF analysis identifies four features with high multicollinearity: APM (41.05),
+SelectByHotkeys (13.76), NumberOfPACs (14.96), and ActionsInPAC (9.42). These
+overlap substantially with other action-based and PAC-related features. ActionLatency
+(5.24) is also moderately inflated. All remaining features have VIF below 3.
+
+\paragraph{Backward Elimination.}
+Backward elimination iteratively removes features that contribute least to model fit based
+on AIC. The final model retains 14 features, removing APM, MinimapRightClicks,
+ComplexAbilitiesUsed, and Age.
+
+\paragraph{Decay Tuning.}
+The decay (L2 regularization) parameter is tuned using 5-fold cross-validation. Results
+show that decay~$= 0$ achieves the highest accuracy (0.4217), meaning no regularization
+is optimal. The final logistic regression model is built with decay~$= 0$.
+
+\subsection{Class Imbalance Strategies}
+
+As shown in Section~4.2, the dataset is heavily imbalanced. League~1 (Bronze) comprises
+only 5.05\% of observations, corresponding to approximately 134 training samples after the
+80/20 split. Three strategies are applied to address this imbalance, as described below.
+
+\begin{enumerate}[itemsep=2pt]
+    \item \textbf{Baseline}: No modification to the training data.
+    \item \textbf{Class Weights}: Inverse-frequency weighting so smaller classes receive
+          proportionally higher loss penalties, without modifying the data.
+    \item \textbf{SMOTE + Tomek Links}: SMOTE oversamples minority classes via
+          nearest-neighbor interpolation ($K=5$), then Tomek Links removes majority-class
+          borderline samples. Applied only to the training set to prevent data leakage.
+\end{enumerate}
+
+\subsection{Machine Learning Models}
+
+\paragraph{Multinomial Logistic Regression.}
+Uses the 14 features selected via backward elimination (Age, APM, MinimapRightClicks,
+and ComplexAbilitiesUsed removed). Trained with maximum likelihood estimation
+(max iterations = 500). Decay parameter is tuned via 5-fold cross-validation,
+with decay~$= 0$ selected as optimal.
+
+\paragraph{Decision Tree.}
+CART algorithm with all available features. Pruned based on cross-validation error
+(\texttt{xerror}) to prevent overfitting.
+
+\paragraph{Random Forest.}
+Ensemble of 1,000 trees via bootstrap aggregating (bagging) with random feature
+selection at each split. A proximity matrix is computed to enable distance-based
+diagnostics. All features included, consistent with Thompson et al.\ (2013).
+
+\subsection{Evaluation Metrics}
+
+A unified evaluation function is applied across all three models. It generates a
+confusion matrix on the test set and reports two metrics: overall accuracy and
+recall for the minority class (League~1, Bronze).
+
+% ══════════════════════════════════════════════════════════
+\section{Results}
+% ══════════════════════════════════════════════════════════
+
+\subsection{Overall Model Comparison}
+
+Table~\ref{tab:all-results} summarizes the performance of all nine model--strategy
+combinations. RF + Class Weights achieves the best balance, with the highest accuracy
+among imbalance-aware strategies (0.4070). SMOTE + Tomek consistently produces the
+highest minority recall across all three models, but at a significant cost to overall
+accuracy. Decision Tree is the weakest performer overall, with accuracy dropping below
+0.30 under both Class Weights and SMOTE + Tomek. Logistic Regression Baseline achieves
+the highest raw accuracy (0.4145), but its minority recall of 0.2727 indicates it largely
+ignores the minority class. Given the class imbalance objective of this project, RF +
+Class Weights is selected as the best overall model.
+
+\begin{table}[H]
+\centering
+\caption{Performance comparison of all nine model--strategy combinations. Bold values
+indicate the best result in each column.}
+\label{tab:all-results}
+\begin{tabular}{llcc}
+\toprule
+\textbf{Algorithm} & \textbf{Strategy} & \textbf{Accuracy} & \textbf{Minority Recall} \\
+\midrule
+\multirow{3}{*}{Logistic Regression}
+    & Baseline        & \textbf{0.4145} & 0.2727 \\
+    & Class Weights   & 0.3812          & 0.5152 \\
+    & SMOTE + Tomek   & 0.3661          & 0.9091 \\
+\midrule
+\multirow{3}{*}{Decision Tree}
+    & Baseline        & 0.3767          & 0.4545 \\
+    & Class Weights   & 0.2874          & 0.3939 \\
+    & SMOTE + Tomek   & 0.2844          & \textbf{0.9091} \\
+\midrule
+\multirow{3}{*}{Random Forest}
+    & Baseline        & 0.4024          & 0.3333 \\
+    & Class Weights   & 0.4070          & 0.3333 \\
+    & SMOTE + Tomek   & 0.3933          & 0.6667 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Logistic Regression Results}
+
+The baseline achieves an accuracy of 0.4145 but a minority recall of only 0.2727,
+indicating most Bronze players are misclassified as Silver or Gold. Class Weights
+improves minority recall to 0.5152 with only a marginal accuracy drop to 0.3812.
+SMOTE + Tomek achieves the highest minority recall of 0.9091 but the lowest accuracy
+(0.3661), as synthetic oversampling disrupts decision boundaries for mid-tier leagues.
+Class Weights achieves the best tradeoff for this model.
+
+\subsection{Decision Tree Results}
+
+The baseline achieves an accuracy of 0.3767 with a minority recall of 0.4545.
+ActionLatency is the primary splitting feature, with the entire tree built around three
+thresholds of this variable. Notably, League~2 (Silver) appears as unused --- the pruned
+tree predicts zero samples as Silver.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/decision_tree.png}
+    \caption{Pruned Decision Tree (baseline). The tree splits exclusively on ActionLatency
+    thresholds; League~2 (Silver) is never predicted.}
+    \label{fig:decision-tree}
+\end{figure}
+
+Unlike Logistic Regression, Class Weights does not improve minority recall for Decision
+Trees --- recall actually drops from 0.4545 to 0.3939, while accuracy falls substantially
+to 0.2874. SMOTE + Tomek achieves the highest minority recall (0.9091) but at the largest
+accuracy cost (0.2844). Decision Trees appear more sensitive to imbalance strategy than
+Logistic Regression, with both strategies causing mid-tier league predictions to collapse
+entirely.
+
+\subsection{Random Forest Results}
+
+Random Forest is the most stable model across all three imbalance strategies. The
+baseline achieves an accuracy of 0.4024 with a minority recall of 0.3333. Class Weights
+achieves a marginal accuracy improvement to 0.4070 with no change in minority recall,
+suggesting the ensemble is already relatively robust to class imbalance through its
+bagging mechanism. SMOTE + Tomek improves recall to 0.6667 with only a modest accuracy
+drop to 0.3933. Unlike Decision Tree, no class collapses to zero under any strategy.
+
+\paragraph{Variable Importance.}
+The variable importance plot (Figure~\ref{fig:varimp}) confirms that ActionLatency and APM
+are the two most influential predictors, consistent with Thompson et al.'s finding that
+action speed dominates skill prediction. NumberOfPACs and TotalHours follow as the next
+most important features. Demographic features such as Age and HoursPerWeek rank in the
+lower half, suggesting that in-game behavioral metrics are more predictive of skill than
+time investment alone. ComplexUnitsMade is the least important feature overall.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/variable_importance.png}
+    \caption{Variable importance from Random Forest (SMOTE + Tomek). ActionLatency and APM
+    dominate, consistent with Thompson et al.\ (2013).}
+    \label{fig:varimp}
+\end{figure}
+
+\paragraph{MDS Proximity Plot.}
+The MDS plot (Figure~\ref{fig:mds}) visualizes the proximity structure of the SMOTE +
+Tomek training data based on Random Forest similarities. MDS1 explains 42.1\% of the
+variance, clearly separating League~1 (red) on the left from higher leagues on the right.
+Leagues~5 and~6 (blue and purple) form a tight cluster on the right, indicating they are
+most similar to each other. Mid-tier leagues (2--4) overlap substantially in the center,
+consistent with the difficulty in distinguishing them observed in the confusion matrices.
+The SMOTE + Tomek model is selected for this visualization because its higher minority
+recall (0.6667) produces a clearer proximity structure, better illustrating the
+separation between League~1 and higher leagues.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/mds_plot.png}
+    \caption{MDS proximity plot from Random Forest. League~1 separates clearly, while
+    mid-tier leagues (2--4) show substantial overlap.}
+    \label{fig:mds}
+\end{figure}
+
+\subsection{OOB Error Convergence}
+
+The OOB error stabilizes by approximately 300--400 trees (Figure~\ref{fig:oob}), with most
+per-class errors converging by that point. League~6 converges earliest ($\sim$100 trees),
+while League~3 shows the most variability. The choice of $\texttt{ntree}=1000$ ensures all
+classes are well-converged.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/oob_error.png}
+    \caption{OOB error convergence by class. All classes stabilize by 400 trees.}
+    \label{fig:oob}
+\end{figure}
+
+\subsection{Pairwise Binary Classification}
+
+To enable direct comparison with Thompson et al.\ (2013), we replicated their pairwise
+binary classification setup using RF + Class Weights (Table~\ref{tab:pairwise}). Our model
+outperforms their Conditional Inference Forest in 3 out of 4 pairs. The only exception is
+Gold--Diamond, where our model scores 75.00\% compared to their 79.01\% --- likely
+reflecting the inherent difficulty of distinguishing mid-tier leagues, where behavioral
+differences between players are less pronounced.
+
+Detailed discussion of these results in relation to Thompson et al.\ is provided in
+Section~8.3.
+
+\begin{table}[H]
+\centering
+\caption{Pairwise binary classification: our RF + Class Weights vs.\ Thompson et al.'s
+Conditional Inference Forest.}
+\label{tab:pairwise}
+\begin{tabular}{lccc}
+\toprule
+\textbf{League Pair} & \textbf{Thompson et al.} & \textbf{Ours (RF + CW)} & \textbf{Outperforms?} \\
+\midrule
+Bronze--Gold         & 82.32\% & \textbf{88.19\%} & Yes \\
+Silver--Platinum     & 78.27\% & \textbf{81.90\%} & Yes \\
+Gold--Diamond        & \textbf{79.01\%} & 75.00\% & No  \\
+Platinum--Masters    & 80.70\% & \textbf{84.67\%} & Yes \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textit{Note:} Both classifiers are trained specifically on each league pair.
+The primary difference lies in the algorithm: Conditional Inference Forest
+(Thompson et al.) versus Random Forest with Class Weights, our best-performing
+configuration (this study).
+
+
+% ══════════════════════════════════════════════════════════
+\section{Discussion}
+% ══════════════════════════════════════════════════════════
+
+\subsection{Imbalance Strategy Comparison}
+
+\textbf{Baseline} preserves the original data distribution and achieves the highest raw
+accuracy, but largely ignores the minority class. \textbf{Class Weights} provides a
+meaningful minority recall improvement with only marginal accuracy cost, without modifying
+the training data. However, it does not address boundary overlap between adjacent leagues.
+\textbf{SMOTE + Tomek} produces the highest minority recall across all models, but synthetic
+samples may not reflect real player behavior, and Tomek removal discards useful training
+information, leading to the largest accuracy drops. Among the three, Class Weights offers
+the best tradeoff and is selected as the preferred strategy.
+
+\subsection{Multinomial vs.\ Pairwise Classification}
+
+Pairwise binary classification simplifies the problem by isolating two leagues at a time,
+naturally yielding higher accuracy. Multinomial classification---predicting all six leagues
+simultaneously---is fundamentally harder, as adjacent leagues share similar behavioral
+profiles and the model must learn all boundaries at once. In the context of a 6-class
+problem where random chance yields only 16.7\%, the accuracy range of 0.28--0.41 is
+reasonable. Class Weights provides the most meaningful improvement, balancing minority
+recall gains without sacrificing overall discriminative power.
+
+\subsection{Comparison with Thompson et al.}
+
+Thompson et al.\ (2013) applied Conditional Inference Forest to pairwise binary
+classification across adjacent leagues, achieving accuracies ranging from 78.27\% to
+82.32\%. Using RF + Class Weights, we replicated this setup and outperformed their
+results in 3 out of 4 pairs.
+
+The only exception is Gold--Diamond (League~3 vs~5), where our model scores 75.00\%
+compared to their 79.01\%. Mid-tier leagues share the most similar behavioral profiles,
+making this boundary the hardest to separate regardless of model configuration.
+
+It should also be noted that direct comparison has limitations. Their study framed
+the problem as a series of binary decisions, while this study addresses 6-class
+multinomial classification --- a fundamentally harder task. The pairwise results here
+serve as a reference point rather than a strict benchmark.
+
+\subsection{Limitations \& Future Work}
+
+Leagues~7 and~8 were excluded due to data quality issues, limiting scope. The relatively
+small training set constrains model performance, particularly for minority classes.
+
+Future directions include: ordinal logistic regression to capture the inherent ordering of
+league ranks; XGBoost or gradient boosting methods for stronger performance on imbalanced
+tabular data; and longitudinal analysis tracking the same players over time to reveal how
+behavioral patterns evolve with skill development.
+
+% ══════════════════════════════════════════════════════════
+% References
+% ══════════════════════════════════════════════════════════
+\bibliographystyle{apalike}
+
+\begin{thebibliography}{9}
+
+\bibitem[Thompson et~al., 2013]{thompson2013}
+Thompson, J.~J., Blair, M.~R., Chen, L., \& Henrey, A.~J. (2013).
+Video game telemetry as a critical tool in the study of complex skill learning.
+\textit{PLOS ONE, 8}(9), e75129.
+\url{https://doi.org/10.1371/journal.pone.0075129}
+
+\bibitem[Blair et~al., 2013]{blair2013skillcraft}
+Blair, M., Thompson, J., Henrey, A., \& Chen, B. (2013).
+SkillCraft1 Master Table Dataset [Dataset].
+UCI Machine Learning Repository.
+\url{https://doi.org/10.24432/C5161N}
+
+\end{thebibliography}
+
+
+% ══════════════════════════════════════════════════════════
+\appendix
+\section{Code Availability}
+% ══════════════════════════════════════════════════════════
+
+The complete R code for this analysis is available at:\\
+\url{https://github.com/ShengPeiWilliam/skillcraft-ml}
+
+\end{document}
