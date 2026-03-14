@@ -16,7 +16,9 @@ R • nnet • rpart • randomForest • caret • smotefamily • themis • g
 
 ## Repository
 `skillcraft_analysis.ipynb` — Main analysis notebook  
-`main.pdf` — Final report  
+`skillcraft_analysis.r` — Executable R script  
+`skillcraft_report.tex` — LaTeX source file  
+`skillcraft_report.pdf` — Final report  
 `figures/` — All plots and visualizations
 
 ## References
