@@ -15,10 +15,10 @@ Multinomial classification of StarCraft II player skill levels using the SkillCr
 R • nnet • rpart • randomForest • caret • smotefamily • themis • ggplot2
 
 ## Repository
-`skillcraft_analysis.ipynb` — Main analysis notebook  
-`skillcraft_analysis.r` — Executable R script  
-`skillcraft_report.tex` — LaTeX source file  
-`skillcraft_report.pdf` — Final report  
+`report/skillcraft_report.tex` — LaTeX source file  
+`report/skillcraft_report.pdf` — Final report  
+`code/skillcraft_analysis.ipynb` — Main analysis notebook  
+`code/skillcraft_analysis.r` — Executable R script  
 `figures/` — All plots and visualizations
 
 ## References

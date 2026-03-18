@@ -57,10 +57,7 @@ skill prediction or the class imbalance inherent in the SkillCraft1 dataset. Thi
 reformulates the problem as a 6-class multinomial classification task, predicting player
 league rankings from Bronze~(1) to Masters~(6).
 
-Three machine learning models are evaluated---Multinomial Logistic Regression,
-Decision Tree, and Random Forest---each trained under three class imbalance strategies:
-Baseline, Class Weights, and SMOTE combined with Tomek Links. Model performance is
-assessed using overall accuracy and minority class recall on a held-out test set.
+We evaluate three machine learning models: Multinomial Logistic Regression, Decision Tree, and Random Forest. Each model is trained under three class imbalance strategies (Baseline, Class Weights, and SMOTE combined with Tomek Links), and performance is assessed using overall accuracy and minority class recall on a held-out test set.
 
 Results show that Random Forest with Class Weights achieves the best overall balance,
 with an accuracy of 0.4070 and a meaningful improvement in minority class recall
@@ -82,9 +79,7 @@ practical strategy for handling imbalance in multi-class skill classification ta
 
 Cognitive science has long studied expertise by comparing experts with novices. Thompson
 et al.\ (2013) challenged the assumptions underlying such comparisons by analyzing
-StarCraft~II telemetry data from 3,395 players across competitive leagues. They discovered
-that variable importance is not static --- APM dominates at lower skill levels, but at
-higher levels, attentional efficiency metrics become more predictive.
+StarCraft~II telemetry data from 3,395 players across competitive leagues. They discovered that variable importance is not static: APM dominates at lower skill levels, but at higher levels, attentional efficiency metrics become more predictive.
 
 Their method used pairwise binary classifiers built with Conditional Inference Forests,
 each comparing players two leagues apart. This design was deliberate: neighboring leagues
@@ -101,10 +96,7 @@ it the largest expertise study of its kind.
 
 This project extends Thompson et al.'s pairwise approach in two directions. First, we
 replicate their pairwise binary classifiers using our best-performing configuration to
-benchmark our methodology against their Conditional Inference Forest results. Second,
-we develop a direct 6-class multinomial prediction model that simultaneously classifies
-players across all skill levels --- a more challenging problem that requires handling
-severe class imbalance and non-linear decision boundaries.
+benchmark our methodology against their Conditional Inference Forest results. Second, we develop a direct 6-class multinomial prediction model that simultaneously classifies players across all skill levels, a more challenging problem that requires handling severe class imbalance and non-linear decision boundaries.
 
 To address class imbalance, three strategies are compared: baseline classification,
 class weight adjustment, and SMOTE combined with Tomek Links. This allows us to
@@ -114,11 +106,7 @@ investigate whether imbalance-aware training improves prediction of minority cla
 
 The primary goal of this project is to develop an effective 6-class multinomial
 classifier for Leagues 1 through 6 that balances overall accuracy with minority class
-recall. To achieve this, we compare three machine learning models --- Multinomial Logistic
-Regression, Decision Tree, and Random Forest --- each trained under three imbalance
-strategies: Baseline, Class Weights, and SMOTE combined with Tomek Links. Additionally,
-we replicate Thompson et al.'s pairwise binary classification setup to benchmark our
-best-performing model against their Conditional Inference Forest results.
+recall. To achieve this, we compare three machine learning models: Multinomial Logistic Regression, Decision Tree, and Random Forest. Each model is trained under three imbalance strategies (Baseline, Class Weights, and SMOTE combined with Tomek Links). Additionally, we replicate Thompson et al.'s pairwise binary classification setup to benchmark our best-performing model against their Conditional Inference Forest results.
 
 A secondary goal is to examine whether demographic features such as Age and HoursPerWeek
 contribute meaningfully to skill prediction beyond in-game behavioral metrics.
@@ -148,17 +136,13 @@ levels apart to avoid the separability issues inherent in adjacent league compar
 
 Their analysis revealed that adjacent leagues are difficult to separate because league
 placement does not perfectly reflect objective skill. They also found that variable
-importance shifts across the skill spectrum --- APM predicts skill at lower levels, while
+importance shifts across the skill spectrum: APM predicts skill at lower levels, while
 attentional efficiency metrics such as Action Latency and Gap Between PACs become
 dominant at higher levels. Grandmaster players were excluded due to their small sample
 size (35 players), and 55 professional players were added from publicly available
 tournament replays to form the highest skill group.
 
-This project extends their work by replicating the pairwise comparison using RF +
-Class Weights --- a standard Random Forest with class weighting, as opposed to their
-Conditional Inference Forest --- and by attempting direct 6-class multinomial prediction,
-a harder problem that Thompson et al.\ did not pursue due to the separability limitations
-they observed.
+This project extends their work by replicating the pairwise comparison using RF + Class Weights (a standard Random Forest with class weighting, as opposed to their Conditional Inference Forest) and by attempting direct 6-class multinomial prediction, a harder problem that Thompson et al.\ did not pursue due to the separability limitations they observed.
 
 \subsection{Class Imbalance Handling Methods}
 
@@ -266,7 +250,7 @@ percentile (2,520 hours), the distribution shows a right-skewed pattern with mos
 players under 1,000 hours. Actual outlier handling is applied in Section~5.
 
 All 55 League~8 observations are missing Age, HoursPerWeek, and TotalHours (100\%),
-indicating systematic missingness --- likely because professional players' data was
+indicating systematic missingness, likely because professional players' data was
 collected from tournament records rather than standard ladder profiles. In contrast,
 League~5 has only 2--3 missing entries ($<0.3$\%), consistent with random gaps.
 This supports excluding League~8 entirely rather than attempting imputation.
@@ -430,7 +414,7 @@ Class Weights achieves the best tradeoff for this model.
 
 The baseline achieves an accuracy of 0.3767 with a minority recall of 0.4545.
 ActionLatency is the primary splitting feature, with the entire tree built around three
-thresholds of this variable. Notably, League~2 (Silver) appears as unused --- the pruned
+thresholds of this variable. Notably, League~2 (Silver) appears as unused; the pruned
 tree predicts zero samples as Silver.
 
 \begin{figure}[H]
@@ -442,7 +426,7 @@ tree predicts zero samples as Silver.
 \end{figure}
 
 Unlike Logistic Regression, Class Weights does not improve minority recall for Decision
-Trees --- recall actually drops from 0.4545 to 0.3939, while accuracy falls substantially
+Trees; recall actually drops from 0.4545 to 0.3939, while accuracy falls substantially
 to 0.2874. SMOTE + Tomek achieves the highest minority recall (0.9091) but at the largest
 accuracy cost (0.2844). Decision Trees appear more sensitive to imbalance strategy than
 Logistic Regression, with both strategies causing mid-tier league predictions to collapse
@@ -511,7 +495,7 @@ classes are well-converged.
 To enable direct comparison with Thompson et al.\ (2013), we replicated their pairwise
 binary classification setup using RF + Class Weights (Table~\ref{tab:pairwise}). Our model
 outperforms their Conditional Inference Forest in 3 out of 4 pairs. The only exception is
-Gold--Diamond, where our model scores 75.00\% compared to their 79.01\% --- likely
+Gold--Diamond, where our model scores 75.00\% compared to their 79.01\%, likely
 reflecting the inherent difficulty of distinguishing mid-tier leagues, where behavioral
 differences between players are less pronounced.
 
@@ -559,8 +543,8 @@ the best tradeoff and is selected as the preferred strategy.
 \subsection{Multinomial vs.\ Pairwise Classification}
 
 Pairwise binary classification simplifies the problem by isolating two leagues at a time,
-naturally yielding higher accuracy. Multinomial classification---predicting all six leagues
-simultaneously---is fundamentally harder, as adjacent leagues share similar behavioral
+naturally yielding higher accuracy. Multinomial classification (predicting all six leagues
+simultaneously) is fundamentally harder, as adjacent leagues share similar behavioral
 profiles and the model must learn all boundaries at once. In the context of a 6-class
 problem where random chance yields only 16.7\%, the accuracy range of 0.28--0.41 is
 reasonable. Class Weights provides the most meaningful improvement, balancing minority
@@ -579,7 +563,7 @@ making this boundary the hardest to separate regardless of model configuration.
 
 It should also be noted that direct comparison has limitations. Their study framed
 the problem as a series of binary decisions, while this study addresses 6-class
-multinomial classification --- a fundamentally harder task. The pairwise results here
+multinomial classification, a fundamentally harder task. The pairwise results here
 serve as a reference point rather than a strict benchmark.
 
 \subsection{Limitations \& Future Work}
