@@ -51,6 +51,10 @@ rsconnect/
 
 skillcraft_analysis.html
 
+# macOS system files
+.DS_Store
+**/.DS_Store
+
 *.aux
 *.log
 *.synctex.gz
