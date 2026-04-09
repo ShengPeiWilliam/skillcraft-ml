@@ -28,7 +28,11 @@ To benchmark against the original study on equal terms. Our RF + Class Weights o
 |-----------|----------|----------|-----------------|
 | Logistic Regression | Baseline | 0.415 | 0.273 |
 | Logistic Regression | Class Weights | 0.381 | 0.515 |
+| Logistic Regression | SMOTE + Tomek | 0.366 | 0.909 |
+| Decision Tree | Baseline | 0.377 | 0.455 |
+| Decision Tree | Class Weights | 0.287 | 0.394 |
 | Decision Tree | SMOTE + Tomek | 0.284 | 0.909 |
+| Random Forest | Baseline | 0.402 | 0.333 |
 | **Random Forest** | **Class Weights** | **0.407** | **0.333** |
 | Random Forest | SMOTE + Tomek | 0.393 | 0.667 |
 
