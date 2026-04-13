@@ -1,4 +1,4 @@
-# SkillCraft ML
+# Multi-Class Skill Classification in StarCraft II
 Multinomial classification of StarCraft II player skill levels (6 leagues, Bronze through Masters) using the SkillCraft1 dataset. Extends Thompson et al. (2013) by tackling the full 6-class problem, achieving 40.7% accuracy with RF + Class Weights and outperforming their Conditional Inference Forest in 3 out of 4 pairwise comparisons.
 
 ## Motivation
